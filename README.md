@@ -10,3 +10,13 @@ https://mega.nz/file/zyJWCT7R#qFAG12bi7s7GgLlG9gVcVPQqo4IR6rTdmj43-f_b0rU
 > Default aim key before update is 0xA2	which is Left Control
 
 > Default aim key if you donwloaded update is 0x06 which is X2 mouse button
+
+# Shorcut to main files:
+## Module updater:
+> https://github.com/KayleMine/wor-tortle/blob/main/pyp/modules.py
+
+## Run:
+> https://github.com/KayleMine/wor-tortle/blob/main/pyp/run.py
+
+## Cheeto source:
+> https://github.com/KayleMine/wor-tortle/tree/main/pyp/module
