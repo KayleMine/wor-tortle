@@ -3,7 +3,7 @@
 
 # Warхуй
  <p align="left">
-  <img width="1200" height="561" src="https://i.imgur.com/tELnpMR.jpg">
+  <img width="1200" height="471" src="https://i.imgur.com/tELnpMR.jpg">
 </p>
 
 
