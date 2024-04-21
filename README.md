@@ -33,3 +33,9 @@
 
 ## Cheeto source:
 > [module folder](https://github.com/KayleMine/wor-tortle/tree/main/pyp/module)
+
+# Low-quality meme:
+
+ <p align="left">
+  <img width="1258" height="877" src="https://i.imgur.com/R8Hr5mt.jpg">
+</p>
