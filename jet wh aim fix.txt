@@ -1,0 +1,29 @@
+in classes.game.py swap:
+
+entity_list_count == 1
+entity_list_count >= 1
+
+
+
+
+    def update_units_ptrs(self):
+        if self.entity_list_count >= 1:
+            self.all_units_ptrs = unpack_from("<" + str(self.all_units_count) + "Q",
+                                         self.memory.read_memory(self.all_units_ptr,
+                                                                 self.all_units_count * 0x8))
+        else:
+            self.entity_list = self.memory.read_int8(self.entity_list_ptr, self.entity_list_count)
+            perform_entities = [x for x in self.entity_list if x not in self.skip_entity]
+            enemy_units = []
+            for entity_ptr in perform_entities:
+                # entity_team = int(self.memory.read_byte(entity_ptr + Offsets.Entity.team))
+                # if entity_team == self.local_entity.team and entity_team != 0:
+                #     self.skip_entity.append(entity_ptr)
+                #     continue
+                enemy_units.append(self.memory.read_int8(entity_ptr + Offsets.Entity.owned_unit)[0])
+            if self.air_units_ptr != 0:
+                air_units = self.memory.read_int8(self.air_units_ptr, self.air_units_count)
+                enemy_units.extend(air_units)
+            self.all_units_ptrs = enemy_units
+
+        return {'all_units_ptrs': self.all_units_ptrs}
