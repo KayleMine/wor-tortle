@@ -5,6 +5,7 @@ entity_list_count >= 1
 
 
 
+or modify, i don't get it, lol
 
     def update_units_ptrs(self):
         if self.entity_list_count >= 1:
