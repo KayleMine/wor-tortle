@@ -1,12 +1,12 @@
 class Offsets:
     class Base:
-        game_ptr = 0x4D78C88 + 0x40  # "mem.memreport_sys"
-        entity_list_ptr = 0x4DF3AA8 + 0xE0  # "m_player"
-        camera_control = 0x4D72488  #0x4D6E448
+        game_ptr = 0x4D79C68 + 0x40  # "mem.memreport_sys"
+        entity_list_ptr = 0x4DF4A88 + 0xE0  # "m_player"
+        camera_control = 0x4D73468  #
         entity_list_count = 0x10  # (entity_list_ptr +)
         local_entity_ptr = 0x18  # (entity_list_ptr +)
-        game_modes = 0x4D207E0
-        current_game_mode = 0x4DBEB20
+        game_modes = 0x4D217E0
+        current_game_mode = 0x4DBFB00
 
     class Game:
         time = 0x1B4

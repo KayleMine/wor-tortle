@@ -23,6 +23,7 @@ class Unit:
         self.save_position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.acceleration = np.zeros(3)
+        self.acceleration_alt = np.zeros(3)
         self.average_velocity = np.zeros(3)
         self.prev_velocity = np.zeros(3)
         self.rotation = np.zeros(9)
@@ -49,7 +50,7 @@ class Unit:
         self.entity_gui_state = -1
         self.history_last_save = None
         self.is_moving = False
-        self.history_delay = 1.0
+        self.history_delay = 0.6
         self.position_history = []
         self.velocity_history = []
         self.acceleration_history = []
@@ -147,6 +148,32 @@ class Unit:
                 if self.air_velocity_ptr != 0:
                     self.velocity[:] = self.memory.read_double(self.air_velocity_ptr + Offsets.Unit.air_velocity_offset, 3)
                     self.acceleration[:] = self.memory.read_double(self.air_velocity_ptr + Offsets.Unit.air_acceleration_offset, 3)
+                    if np.linalg.norm(self.acceleration) == 0:
+                        if np.linalg.norm(self.delayed_velocity) != 0 and (self.last_read - self.delayed_time) != 0 and len(self.velocity_history) >= 10:
+
+                            time_array = np.array(self.history_times)
+                            velocity_array = np.array(self.velocity_history)
+                            time_mean = np.mean(time_array)
+                            time_std = np.std(time_array)
+                            time_normalized = (time_array - time_mean) / time_std
+                            coefficients = np.polyfit(time_normalized, velocity_array, 2)
+                            self.acceleration[:] = coefficients[1] / time_std
+
+                        # # —глаживание истории скоростей
+                        # window_length = min(11,
+                        #                     len(self.velocity_history))  # ¬ыбираем минимальное значение между 11 и длиной истории
+                        # polyorder = min(2, window_length - 1)  # ѕор€док полинома не должен превышать длину окна минус 1
+                        # velocities_smoothed = savgol_filter(self.velocity_history, window_length, polyorder)
+                        #
+                        # # ¬ычисление ускорени€ по сглаженным данным
+                        # self.acceleration[:] = (velocities_smoothed[-1] - velocities_smoothed[-2]) / (
+                        #             self.last_read - self.delayed_time)
+
+                        # self.acceleration[:] = ((self.velocity - self.delayed_velocity) / (self.last_read - self.delayed_time))
+                    # self.acceleration[:] = calculate_acceleration(self.history_times, self.velocity_history)
+                    # print(calculate_acceleration(self.history_times, self.velocity_history))
+                    # if np.linalg.norm(self.velocity - self.prev_velocity) > 0 and (self.last_read - self.prev_time) != 0:
+                    #     self.acceleration[:] = (self.velocity - self.prev_velocity) / (self.last_read - self.prev_time)
             else:
                 # self.velocity[:] = unpack_from('<3f', self.bytes, Offsets.Unit.ground_velocity)
                 self.velocity[:] = self.memory.read_float(self.unit_ptr + Offsets.Unit.ground_velocity, 3)
@@ -155,8 +182,10 @@ class Unit:
                 self.prev_velocity[:] = self.velocity
                 self.prev_time = self.last_read
 
-        except:
+        except Exception as e:
+            print(e)
             self.velocity[:] = [0, 0, 0]
+            self.acceleration[:] = [0, 0, 0]
 
         return self.velocity
 
@@ -263,6 +292,7 @@ class Unit:
             'rotation': self.rotation,
             'velocity': self.velocity,
             'acceleration': self.acceleration,
+            'acceleration_alt': self.acceleration_alt,
             'average_velocity': self.average_velocity,
             'prev_velocity': self.prev_velocity,
             'dist': round(self.dist, 3),

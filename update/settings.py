@@ -5,7 +5,7 @@ import raypyc as render_engine
 class Settings:
     class Product:
         name = 'Arcade free'
-        version = '8.2'
+        version = '8.6'
         server = 'https://warchill.xyz'
 
     class Memory:

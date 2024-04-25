@@ -190,6 +190,66 @@ def get_predicted_position(unit, time):
     return predicted_position
 
 
+
+def calculate_acceleration_old(time_history, velocity_history):
+    # Создание массивов времени и скорости
+    time_array = np.array(time_history)
+    velocity_array = np.array(velocity_history)
+
+    # Аппроксимация полиномом второй степени методом наименьших квадратов
+    try:
+        if time_array[0] - time_array[len(time_array) - 1] == 0 and np.linalg.norm(velocity_array[0] - velocity_array[len(velocity_array) - 1]) != 0:
+            return [0,0,0]
+        coefficients = np.polyfit(time_array, velocity_array, 1)
+        # Ускорение равно второму коэффициенту полинома
+        acceleration = 2 * coefficients[0]
+
+        return acceleration
+    except:
+        return [0,0,0]
+
+def calculate_acceleration(time_history, velocity_history):
+    # Преобразование списков в массивы NumPy
+    time_array = np.array(time_history)
+    velocity_array = np.array(velocity_history)
+    if time_array[0] - time_array[len(time_array) - 1] == 0:
+        return [0,0,0]
+
+    # Нормализация времени
+    time_mean = np.mean(time_array)
+    time_std = np.std(time_array)
+    time_normalized = (time_array - time_mean) / time_std
+
+    # Аппроксимация полиномом второй степени методом наименьших квадратов
+    coefficients = np.polyfit(time_normalized, velocity_array, 2)
+
+    # Ускорение равно второму коэффициенту полинома
+    acceleration = 2 * coefficients[1]
+
+    # Денормализация ускорения
+    acceleration /= time_std
+
+    return acceleration
+
+# @nb.njit
+def predict_smart_position(prev_pos, prev_vel, prev_acc, delta_time, pos, vel, acc, prediction_time):
+    # Расчет изменения скорости и положения
+    # delta_vel = vel - prev_vel
+    delta_pos = pos - prev_pos
+    # return pos + vel * prediction_time + 0.5 * acc * (prediction_time ** 2)
+    # Расчет скорости и положения в момент времени prediction_time
+    # predicted_vel = vel + delta_vel * (prediction_time / delta_time)
+    if delta_time > 0:
+        # predicted_pos = pos + delta_pos * (prediction_time / delta_time) + 0.5 * acc * (prediction_time ** 2)
+        # predicted_pos = pos + predicted_vel * (prediction_time / delta_time) + 0.5 * acc * (prediction_time ** 2)
+        predicted_pos = pos + vel * prediction_time + 0.5 * (acc + prev_acc) / 2 * (prediction_time ** 2) + 1 / 6 * (
+                    acc - prev_acc) / delta_time * (prediction_time ** 3)
+        # predicted_pos = pos + vel * prediction_time + 0.5 * acc * (prediction_time ** 2)
+    else:
+        predicted_pos = pos + vel * prediction_time + 0.5 * acc * (prediction_time ** 2)
+
+    return predicted_pos
+
 @nb.njit
 def w2s(pos, matrix, screen_w, screen_h):
     result = [0, 0]
@@ -206,7 +266,6 @@ def w2s(pos, matrix, screen_w, screen_h):
 
     nx = x * w
     ny = y * w
-
 
     if is_back is True:
         result[0] = int((screen_w / 2 * nx) + (nx + screen_w / 2))
