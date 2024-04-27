@@ -15,7 +15,7 @@
 >
 >[mega.nz](https://mega.nz/file/zyJWCT7R#qFAG12bi7s7GgLlG9gVcVPQqo4IR6rTdmj43-f_b0rU)
 
-
+***
 
 ### Hotkey
 > [!TIP]
@@ -27,8 +27,8 @@
 > Set any other key via: [usettings.py](https://github.com/KayleMine/wor-tortle/blob/main/pyp/module/usettings.py)
 >
 > [Virtual KeyCodes](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
-
-### Shorcut to main files:
+***
+## Shorcut to main files:
 #### Module updater:
 > [modules.py](https://github.com/KayleMine/wor-tortle/blob/main/pyp/modules.py)
 
@@ -41,5 +41,5 @@
 ### Low-quality meme:
 
  <p align="left">
-  <img width="1258" height="677" src="https://i.imgur.com/R8Hr5mt.jpg">
+  <img width="1258" height="577" src="https://i.imgur.com/R8Hr5mt.jpg">
 </p>
