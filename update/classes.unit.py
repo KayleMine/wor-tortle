@@ -13,6 +13,7 @@ class Unit:
         self.memory = memory
         self.last_read = None
         self.air_velocity_ptr = 0
+        self.ground_velocity_ptr = 0
         self.create_time = time()
         self.unit_info_ptr = 0
         self.vehicle_name_ptr = 0
@@ -150,7 +151,6 @@ class Unit:
                     self.acceleration[:] = self.memory.read_double(self.air_velocity_ptr + Offsets.Unit.air_acceleration_offset, 3)
                     if np.linalg.norm(self.acceleration) == 0:
                         if np.linalg.norm(self.delayed_velocity) != 0 and (self.last_read - self.delayed_time) != 0 and len(self.velocity_history) >= 10:
-
                             time_array = np.array(self.history_times)
                             velocity_array = np.array(self.velocity_history)
                             time_mean = np.mean(time_array)
@@ -158,26 +158,13 @@ class Unit:
                             time_normalized = (time_array - time_mean) / time_std
                             coefficients = np.polyfit(time_normalized, velocity_array, 2)
                             self.acceleration[:] = coefficients[1] / time_std
-
-                        # # —глаживание истории скоростей
-                        # window_length = min(11,
-                        #                     len(self.velocity_history))  # ¬ыбираем минимальное значение между 11 и длиной истории
-                        # polyorder = min(2, window_length - 1)  # ѕор€док полинома не должен превышать длину окна минус 1
-                        # velocities_smoothed = savgol_filter(self.velocity_history, window_length, polyorder)
-                        #
-                        # # ¬ычисление ускорени€ по сглаженным данным
-                        # self.acceleration[:] = (velocities_smoothed[-1] - velocities_smoothed[-2]) / (
-                        #             self.last_read - self.delayed_time)
-
-                        # self.acceleration[:] = ((self.velocity - self.delayed_velocity) / (self.last_read - self.delayed_time))
-                    # self.acceleration[:] = calculate_acceleration(self.history_times, self.velocity_history)
-                    # print(calculate_acceleration(self.history_times, self.velocity_history))
-                    # if np.linalg.norm(self.velocity - self.prev_velocity) > 0 and (self.last_read - self.prev_time) != 0:
-                    #     self.acceleration[:] = (self.velocity - self.prev_velocity) / (self.last_read - self.prev_time)
+            elif self.type == 8 or self.type == -1:
+                self.velocity[:] = [0, 0, 0]
+                self.acceleration[:] = [0, 0, 0]
             else:
+                self.ground_velocity_ptr = unpack_from('<Q', self.bytes, Offsets.Unit.ground_velocity_ptr)[0]
                 # self.velocity[:] = unpack_from('<3f', self.bytes, Offsets.Unit.ground_velocity)
-                self.velocity[:] = self.memory.read_float(self.unit_ptr + Offsets.Unit.ground_velocity, 3)
-
+                self.velocity[:] = self.memory.read_float(self.ground_velocity_ptr + Offsets.Unit.ground_velocity_offset, 3)
             if self.velocity[0] != self.prev_velocity[0] or self.velocity[2] != self.prev_velocity[2]:
                 self.prev_velocity[:] = self.velocity
                 self.prev_time = self.last_read
