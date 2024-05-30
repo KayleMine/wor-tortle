@@ -1,8 +1,8 @@
 class Offsets:
     class Base:
-        game_ptr = 0x4D990A8 + 0x40  # "mem.memreport_sys"
-        entity_list_ptr = 0x4E13EE0 + 0xE0  # "m_player"
-        camera_control = 0x4D92908  #
+        game_ptr = 0x4DB00D8 + 0x40  # "mem.memreport_sys"
+        entity_list_ptr = 0x4E2B070 + 0xE0  # "m_player"
+        camera_control = 0x4DA9928  #
         entity_list_count = 0x10  # (entity_list_ptr +)
         local_entity_ptr = 0x18  # (entity_list_ptr +)
         game_modes = 0x4D4A7E0
@@ -25,17 +25,17 @@ class Offsets:
         view_matrix = 0x1E8
 
     class Ballistics:
-        selected_unit_ptr = 0x628
-        weapon_position = 0x1C8C
-        weapon_position_two = 0x1CA0
-        velocity = 0x1C98
-        mass = 0x1CA4
-        caliber = 0x1CA8
-        length = 0x1CAC
-        max_dist = 0x1CB0
-        bomb_impact_point = 0x18AC
-        bullet_impact_point = 0x2050
-        ingame_ballistics = 0x2058
+        selected_unit_ptr = 0x630
+        weapon_position = 0x1C94
+        weapon_position_two = 0x1CA0 + 0x10
+        velocity = 0x1CA0
+        mass = 0x1CAC
+        caliber = 0x1CB0
+        length = 0x1CB4
+        max_dist = 0x1CB8
+        bomb_impact_point = 0x18B4
+        bullet_impact_point = 0x2050 + 0x10
+        ingame_ballistics = 0x20B8
 
     class Entity:
         team = 0x210
