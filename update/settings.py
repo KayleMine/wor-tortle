@@ -6,7 +6,7 @@ class Settings:
     class Product:
         name = 'Arcade free'
         version = '8.6'
-        server = 'https://warchill.xyz'
+        server = 'хуй'
 
     class Memory:
         is_debug = False
