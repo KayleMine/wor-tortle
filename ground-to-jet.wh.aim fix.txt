@@ -1,11 +1,11 @@
 in classes.game.py swap:
 
-entity_list_count == 1
-entity_list_count >= 1
+from: entity_list_count == 1
+to: entity_list_count >= 1
 
 
 
-or modify, i don't get it, lol
+or modify this, i don't get it, lol
 
     def update_units_ptrs(self):
         if self.entity_list_count >= 1:
