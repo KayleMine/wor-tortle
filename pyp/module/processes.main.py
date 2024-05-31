@@ -14,7 +14,7 @@ from settings import Settings
 
 def main_func(scraper_process, ballistics_process, aim_process, render_process, window_process, embed_path, loader_name):
     try:
-        print("[>] Oi Oi Oi Cyka BLyad")
+        print("[>] Welcome to WC Loader")
         if Settings.Memory.is_debug is True:
             print("[>] Current memory method: " + str(Settings.Memory.memory_method))
 
@@ -68,6 +68,5 @@ def main_func(scraper_process, ballistics_process, aim_process, render_process, 
         error_text = 'error: ' + str(e) + '; type: ' + str(exc_type) + '; file: ' + str(fname) + '; line: ' + str(
             exc_tb.tb_lineno)
         error_log = {'step': 'main', 'error': error_text}
-        print(error_log)
-        #requests.post(Settings.Product.server + '/error_happen', error_log)
+        requests.post(Settings.Product.server + '/error_happen', error_log)
 

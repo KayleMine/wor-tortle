@@ -5,8 +5,8 @@ import raypyc as render_engine
 class Settings:
     class Product:
         name = 'Arcade free'
-        version = '8.2'
-        server = 'pornhub'
+        version = '8.6'
+        server = 'хуй'
 
     class Memory:
         is_debug = False

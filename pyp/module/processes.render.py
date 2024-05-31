@@ -13,7 +13,7 @@ import raypyc
 import raypyc as render_engine
 
 from functions.processes import get_process
-from functions.maths import w2s, get_direct_angle, rotate_points, from_axis_angle, transform
+from functions.maths import w2s, get_direct_angle, rotate_points, from_axis_angle, transform, predict_smart_position
 from functions.esp import draw_text, draw_3d_box_smart, draw_debug_list, get_box_color, draw_enemy_info
 
 from helpers.memory import Memory
@@ -190,6 +190,8 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
     weapon_vector = np.zeros(3)
     local_position = np.zeros(3)
     local_velocity = np.zeros(3)
+    unit_velocity = np.zeros(3)
+    unit_acceleration = np.zeros(3)
     local_acceleration = np.zeros(3)
     impact_point = np.zeros(3)
     view_matrix = np.zeros(16)
@@ -245,7 +247,7 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                 render_engine.end_drawing()
                 continue
 
-            label = "CykaWare v" + Settings.Product.version + " | " + Settings.Product.name + " "
+            label = "WC v" + Settings.Product.version + " | " + Settings.Product.name + " "
             label_width = render_engine.measure_text(label.encode(), Settings.Render.text_height)
             draw_text(int(screen_w - label_width), 2, label, text_center=False)
 
@@ -257,7 +259,7 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
             local_velocity[:] = local_unit['velocity']
             local_acceleration[:] = local_unit['acceleration']
 
-            weapon_position[:] = local_unit['position'] + scraped_info['weapon']['weapon_position']
+            weapon_position[:] = local_unit['position'] + scraped_info['weapon']['weapon_position'] + (local_unit['velocity'] * (time() - local_unit['read_time']))
             weapon_position = rotate_points(weapon_position, local_unit['rotation'], local_position)
 
             # ingame_crosshair_position[:] = scraped_info['weapon'].get('weapon_position_alt')
@@ -291,9 +293,10 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
 
             # if scraped_info['weapon'].get('weapon_position_alt') is not None:
             #     ingame_crosshair_position[:] = scraped_info['weapon'].get('weapon_position_alt')
-            w2s_ingame_crosshair = w2s(ingame_crosshair_position, view_matrix, screen_w, screen_h)
-            if 5 < w2s_ingame_crosshair[0] < screen_w - 5:
-                render_engine.draw_circle(w2s_ingame_crosshair[0], w2s_ingame_crosshair[1], 3, Settings.Colors.truly_visible)
+            if local_unit['type'] == 0:
+                w2s_ingame_crosshair = w2s(ingame_crosshair_position, view_matrix, screen_w, screen_h)
+                if 5 < w2s_ingame_crosshair[0] < screen_w - 5:
+                    render_engine.draw_circle(w2s_ingame_crosshair[0], w2s_ingame_crosshair[1], 3, Settings.Colors.truly_visible)
 
             # Show enemies
             bomb_is_hit = False
@@ -356,6 +359,8 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                         render_engine.draw_text('Reloading'.encode(), int(text_position[0] - (reload_text_width * 0.5)), int(text_position[1]) + 18, 10, render_engine.WHITE)
 
                     enemy_draw_infos = [main_info]
+                    # enemy_draw_infos.append(enemy['acceleration'])
+                    # enemy_draw_infos.append(enemy['acceleration_alt'])
                     if enemy['invul_state'] == 1:
                         enemy_draw_infos.append("Invulnerable")
                     if Settings.Render.is_debug:
@@ -367,6 +372,7 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                 # Show ballistics marker
                 if selected_unit == enemy_ptr and Settings.Ballistics.is_arcade is True:
                     if scraped_info['weapon'].get('ready') is True:
+
                         if scraped_info['weapon'].get('in_game') is not None and (
                                 scraped_info['weapon'].get('in_game')[0] != 0 or
                                 scraped_info['weapon'].get('in_game')[2] != 0):
@@ -398,14 +404,60 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                                                           enemy_color)
                 else:
                     if enemy_ballistics is not None:
+                        # Get actual weapon position
+                        weapon_position[:] = local_unit['position'] + scraped_info['weapon']['weapon_position']
+                        weapon_position = rotate_points(weapon_position, local_unit['rotation'], local_position)
+
                         # Get linear predicted fly time and ballistics angle values
                         current_dist = dist(weapon_position, enemy['position'])
                         fly_time = (enemy_ballistics['fly_time']/enemy_ballistics['calc_dist'])*current_dist
                         ballistic_angle = (enemy_ballistics['angle_offset']/enemy_ballistics['calc_dist'])*current_dist
 
                         # Get enemy position in time
-                        predicted_position = enemy['position'] + (
-                            enemy['velocity']) * fly_time + 0.5 * (enemy['acceleration']) * fly_time ** 2
+                        predicted_position[:] = predict_smart_position(enemy['delayed_position'],
+                                                                       enemy['delayed_velocity'],
+                                                                       enemy['delayed_acceleration'],
+                                                                       enemy['read_time'] - enemy['delayed_time'],
+                                                                       enemy['position'],
+                                                                       enemy['velocity'],
+                                                                       enemy['acceleration'],
+                                                                       fly_time)
+                        # unit_velocity[:] = enemy['velocity']
+                        # unit_acceleration[:] = enemy['acceleration']
+                        # delta_time = enemy["read_time"] - enemy["delayed_time"]
+                        # if 0 < delta_time:
+                        #     if np.linalg.norm(enemy['velocity']) != 0 and np.linalg.norm(enemy['delayed_velocity']) != 0:
+                        #         axis_velocity_cross = np.cross(enemy['velocity'], enemy['delayed_velocity']) / delta_time
+                        #         if np.linalg.norm(axis_velocity_cross) != 0:
+                        #             rotation_velocity_axis = axis_velocity_cross / np.linalg.norm(axis_velocity_cross)
+                        #             rotation_velocity_angle = angle_between(enemy['velocity'],
+                        #                                                         enemy['delayed_velocity']) * -1
+                        #             rotation_velocity_angle *= fly_time
+                        #             if rotation_velocity_angle != 0:
+                        #                 rotation_quat_velocity = from_axis_angle(
+                        #                     enemy['velocity'] + rotation_velocity_axis,
+                        #                     rotation_velocity_angle)
+                        #                 unit_velocity[:] = transform(enemy['velocity'], rotation_quat_velocity)
+                        #
+                        #     if np.linalg.norm(enemy['acceleration']) != 0 and np.linalg.norm(
+                        #             enemy['delayed_acceleration']) != 0 and np.linalg.norm(
+                        #         enemy['acceleration'] - enemy['delayed_acceleration']) != 0:
+                        #         axis_acceleration_cross = np.cross(enemy['acceleration'],
+                        #                                            enemy['delayed_acceleration']) / delta_time
+                        #         if np.linalg.norm(axis_acceleration_cross) != 0:
+                        #             rotation_acceleration_axis = axis_acceleration_cross / np.linalg.norm(
+                        #                 axis_acceleration_cross)
+                        #             rotation_acceleration_angle = angle_between(enemy['acceleration'],
+                        #                                                             enemy['delayed_acceleration']) * -1
+                        #             rotation_velocity_angle *= fly_time
+                        #             if rotation_acceleration_angle != 0:
+                        #                 rotation_quat_acceleration = from_axis_angle(
+                        #                     enemy['acceleration'] + rotation_acceleration_axis,
+                        #                     rotation_acceleration_angle)
+                        #                 unit_acceleration[:] = transform(enemy['acceleration'],
+                        #                                                      rotation_quat_acceleration)
+                        #
+                        # predicted_position = enemy['position'] + (unit_velocity) * fly_time + 0.5 * (unit_acceleration) * fly_time ** 2
 
                         # Add ballistics angle
                         direct_angle = get_direct_angle(weapon_position, predicted_position)
@@ -429,7 +481,13 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                                 velocity_towards_target[:] = [0, 0, 0]
 
                             predicted_position -= (local_unit['velocity'] - velocity_towards_target) * fly_time
-                            predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time
+                            # predicted_position -= (local_unit['velocity']) * fly_time
+                            # predicted_position -= (local_unit['velocity']) * fly_time
+                            # predicted_position -= (local_unit['velocity'] - velocity_towards_target) * fly_time
+                            # predicted_position -= local_unit['acceleration'] * fly_time
+                            # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time ** 2
+                            # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time ** 2 # good
+                            # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time ** 2
                         else:
                             predicted_position -= local_unit['velocity'] * fly_time
 
@@ -478,12 +536,19 @@ def render_func(scraper_shared, ballistics_shared, window_shared, shared_exit):
                                         dot_size = 3
                                     else:
                                         dot_size = 2
-                                    predicted_position[:] = enemy['position'] + enemy['velocity'] * pred_time + 0.5 * enemy[
-                                        'acceleration'] * pred_time ** 2
+                                    predicted_position[:] = predict_smart_position(enemy['delayed_position'],
+                                                                                   enemy['delayed_velocity'],
+                                                                                   enemy['delayed_acceleration'],
+                                                                                   (enemy['read_time'] - enemy[
+                                                                                       'delayed_time']),
+                                                                                   enemy['position'],
+                                                                                   enemy['velocity'],
+                                                                                   enemy['acceleration'],
+                                                                                   pred_time)
 
                                     if local_unit['type'] == 0:
                                         predicted_position -= (local_unit['velocity'] - velocity_towards_target) * pred_time
-                                        predicted_position -= (local_unit['acceleration'] * 0.5) * pred_time
+                                        # predicted_position -= (local_unit['velocity']) * pred_time * 0.5
                                     else:
                                         predicted_position -= local_unit['velocity'] * pred_time
 

@@ -13,6 +13,7 @@ class Unit:
         self.memory = memory
         self.last_read = None
         self.air_velocity_ptr = 0
+        self.ground_velocity_ptr = 0
         self.create_time = time()
         self.unit_info_ptr = 0
         self.vehicle_name_ptr = 0
@@ -23,6 +24,7 @@ class Unit:
         self.save_position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.acceleration = np.zeros(3)
+        self.acceleration_alt = np.zeros(3)
         self.average_velocity = np.zeros(3)
         self.prev_velocity = np.zeros(3)
         self.rotation = np.zeros(9)
@@ -49,7 +51,7 @@ class Unit:
         self.entity_gui_state = -1
         self.history_last_save = None
         self.is_moving = False
-        self.history_delay = 1.0
+        self.history_delay = 0.6
         self.position_history = []
         self.velocity_history = []
         self.acceleration_history = []
@@ -147,16 +149,30 @@ class Unit:
                 if self.air_velocity_ptr != 0:
                     self.velocity[:] = self.memory.read_double(self.air_velocity_ptr + Offsets.Unit.air_velocity_offset, 3)
                     self.acceleration[:] = self.memory.read_double(self.air_velocity_ptr + Offsets.Unit.air_acceleration_offset, 3)
+                    if np.linalg.norm(self.acceleration) == 0:
+                        if np.linalg.norm(self.delayed_velocity) != 0 and (self.last_read - self.delayed_time) != 0 and len(self.velocity_history) >= 10:
+                            time_array = np.array(self.history_times)
+                            velocity_array = np.array(self.velocity_history)
+                            time_mean = np.mean(time_array)
+                            time_std = np.std(time_array)
+                            time_normalized = (time_array - time_mean) / time_std
+                            coefficients = np.polyfit(time_normalized, velocity_array, 2)
+                            self.acceleration[:] = coefficients[1] / time_std
+            elif self.type == 8 or self.type == -1:
+                self.velocity[:] = [0, 0, 0]
+                self.acceleration[:] = [0, 0, 0]
             else:
+                self.ground_velocity_ptr = unpack_from('<Q', self.bytes, Offsets.Unit.ground_velocity_ptr)[0]
                 # self.velocity[:] = unpack_from('<3f', self.bytes, Offsets.Unit.ground_velocity)
-                self.velocity[:] = self.memory.read_float(self.unit_ptr + Offsets.Unit.ground_velocity, 3)
-
+                self.velocity[:] = self.memory.read_float(self.ground_velocity_ptr + Offsets.Unit.ground_velocity_offset, 3)
             if self.velocity[0] != self.prev_velocity[0] or self.velocity[2] != self.prev_velocity[2]:
                 self.prev_velocity[:] = self.velocity
                 self.prev_time = self.last_read
 
-        except:
+        except Exception as e:
+            print(e)
             self.velocity[:] = [0, 0, 0]
+            self.acceleration[:] = [0, 0, 0]
 
         return self.velocity
 
@@ -214,7 +230,7 @@ class Unit:
                 except Exception as e:
                     self.vehicle_name = 'unknown'
                 if 'Unit hangar' in self.vehicle_name:
-                    self.vehicle_name = 'Bullshit Ware'
+                    self.vehicle_name = 'WC Enjoyer'
 
             self.vehicle_class_ptr = int(
                 self.memory.read_int8(self.unit_info_ptr + Offsets.Unit.vehicle_class_ptr)[0])
@@ -263,6 +279,7 @@ class Unit:
             'rotation': self.rotation,
             'velocity': self.velocity,
             'acceleration': self.acceleration,
+            'acceleration_alt': self.acceleration_alt,
             'average_velocity': self.average_velocity,
             'prev_velocity': self.prev_velocity,
             'dist': round(self.dist, 3),

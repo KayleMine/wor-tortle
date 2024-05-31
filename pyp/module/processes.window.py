@@ -123,26 +123,24 @@ def window_func(window_shared, shared_lock, shared_exit):
             active_window_class = ''
 
             try:
-                window_info['process_exist'] = True
-                # if last_process_check is None or time() - last_process_check > 2:
-                #     last_process_check = time()
-                #     if get_process('aces.exe') is not False:
-                #         window_info['process_exist'] = True
-                #     else:
-                #         window_info['process_exist'] = False
+                # window_info['process_exist'] = True
+                if last_process_check is None or time() - last_process_check > 30:
+                    last_process_check = time()
+                    if get_process('aces.exe') is not False:
+                        window_info['process_exist'] = True
+                    else:
+                        window_info['process_exist'] = False
             except:
                 pass
 
 
-            if window_info['process_exist'] is True:
-                if time() - start_time > 180:
+            if time() - start_time > 180:
+                launch_message_box_closed = True
+            if launch_message_box_closed is False:
+                launch_message_box = find_window('gui_message_box')
+                if launch_message_box:
+                    close_window_by_hwnd(launch_message_box)
                     launch_message_box_closed = True
-                if launch_message_box_closed is False:
-                    launch_message_box = find_window('gui_message_box')
-                    if launch_message_box:
-                        close_window_by_hwnd(launch_message_box)
-                        launch_message_box_closed = True
-
 
 
             if (prev_window_info is not None and prev_window_info['process_exist'] is True and window_info['process_exist'] is False) or (window_info['process_exist'] is False and time() - start_time > 200):

@@ -81,6 +81,7 @@ def draw_debug_list(scraped_info):
         "Skip units: " + str(len(scraped_info['skip_unit_ptrs'])),
         "Entity count units: " + str(scraped_info['entity_list_count']),
         "Weapon velocity: " + str(scraped_info['weapon'].get('velocity')),
+        "Ingame ballistics : " + str(scraped_info['weapon'].get('in_game')),
     ]
     if scraped_info.get('local_unit') is not None:
         debug_list.append("Local unit: " + hex(scraped_info['local_unit']['unit_ptr']))

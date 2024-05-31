@@ -79,7 +79,7 @@ class Game:
             if self.entity_list_count == 0:
                 return {'status': 'skip', 'data': 'empty_entity_list'}
 
-            if self.entity_list_count >= 1:
+            if self.entity_list_count == 1:
                 self.update_air_units_ptr()
                 self.update_all_units_ptr()
                 if self.all_units_count == 0:
@@ -204,7 +204,7 @@ class Game:
         return self.entity_list_ptr
 
     def update_units_ptrs(self):
-        if self.entity_list_count >= 1:
+        if self.entity_list_count == 1:
             self.all_units_ptrs = unpack_from("<" + str(self.all_units_count) + "Q",
                                          self.memory.read_memory(self.all_units_ptr,
                                                                  self.all_units_count * 0x8))
@@ -263,7 +263,7 @@ class Game:
                 continue
 
             # skip for GAME | Decor and map objects
-            if ((unit.type == 8 or unit.type == 4) and "Bullshit Ware" not in unit.vehicle_name):
+            if ((unit.type == 8 or unit.type == 4) and "WC Enjoyer" not in unit.vehicle_name):
                 # skip_unit_ptrs.append(unit_ptr)
                 continue
 

@@ -7,7 +7,7 @@ import numpy as np
 import ctypes
 import threading
 
-from functions.maths import get_direct_angle, rotate_points, get_predicted_position, from_axis_angle, transform
+from functions.maths import get_direct_angle, rotate_points, predict_smart_position, from_axis_angle, transform
 from functions.processes import get_process
 
 from classes.camera import Camera
@@ -130,6 +130,8 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
     custom_crosshair_position = np.zeros(3)
     local_position = np.zeros(3)
     local_velocity = np.zeros(3)
+    unit_velocity = np.zeros(3)
+    unit_acceleration = np.zeros(3)
     velocity_towards_target = np.zeros(3)
     acceleration_towards_target = np.zeros(3)
     local_acceleration = np.zeros(3)
@@ -279,6 +281,7 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
                 if (enemy_ballistics is None and Settings.Ballistics.is_arcade is False) or enemy is None:
                     best_target = False
                     continue
+
                 if Settings.Ballistics.is_arcade is True:
                     predicted_position[:] = scraped_info['weapon'].get('in_game')
                 else:
@@ -292,8 +295,51 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
                         'calc_dist']) * current_dist
 
                     # Get enemy position in time
-                    predicted_position = enemy['position'] + (
-                        enemy['velocity']) * fly_time + 0.5 * (enemy['acceleration']) * fly_time ** 2
+                    predicted_position[:] = predict_smart_position(enemy['delayed_position'],
+                                                                   enemy['delayed_velocity'],
+                                                                   enemy['delayed_acceleration'],
+                                                                   (enemy['read_time'] - enemy['delayed_time']),
+                                                                   enemy['position'],
+                                                                   enemy['velocity'],
+                                                                   enemy['acceleration'],
+                                                                   fly_time)
+                    # unit_velocity[:] = enemy['velocity']
+                    # unit_acceleration[:] = enemy['acceleration']
+                    # delta_time = enemy["read_time"] - enemy["delayed_time"]
+                    # if 0 < delta_time:
+                    #     if np.linalg.norm(enemy['velocity']) != 0 and np.linalg.norm(enemy['delayed_velocity']) != 0:
+                    #         axis_velocity_cross = np.cross(enemy['velocity'], enemy['delayed_velocity']) / delta_time
+                    #         if np.linalg.norm(axis_velocity_cross) != 0:
+                    #             rotation_velocity_axis = axis_velocity_cross / np.linalg.norm(axis_velocity_cross)
+                    #             rotation_velocity_angle = angle_between(enemy['velocity'],
+                    #                                                     enemy['delayed_velocity']) * -1
+                    #             rotation_velocity_angle *= fly_time
+                    #             if rotation_velocity_angle != 0:
+                    #                 rotation_quat_velocity = from_axis_angle(
+                    #                     enemy['velocity'] + rotation_velocity_axis,
+                    #                     rotation_velocity_angle)
+                    #                 unit_velocity[:] = transform(enemy['velocity'], rotation_quat_velocity)
+                    #
+                    #     if np.linalg.norm(enemy['acceleration']) != 0 and np.linalg.norm(
+                    #             enemy['delayed_acceleration']) != 0 and np.linalg.norm(
+                    #         enemy['acceleration'] - enemy['delayed_acceleration']) != 0:
+                    #         axis_acceleration_cross = np.cross(enemy['acceleration'],
+                    #                                            enemy['delayed_acceleration']) / delta_time
+                    #         if np.linalg.norm(axis_acceleration_cross) != 0:
+                    #             rotation_acceleration_axis = axis_acceleration_cross / np.linalg.norm(
+                    #                 axis_acceleration_cross)
+                    #             rotation_acceleration_angle = angle_between(enemy['acceleration'],
+                    #                                                         enemy['delayed_acceleration']) * -1
+                    #             rotation_velocity_angle *= fly_time
+                    #             if rotation_acceleration_angle != 0:
+                    #                 rotation_quat_acceleration = from_axis_angle(
+                    #                     enemy['acceleration'] + rotation_acceleration_axis,
+                    #                     rotation_acceleration_angle)
+                    #                 unit_acceleration[:] = transform(enemy['acceleration'],
+                    #                                                  rotation_quat_acceleration)
+                    #
+                    #     predicted_position = enemy['position'] + (unit_velocity) * fly_time + 0.5 * (
+                    #         unit_acceleration) * fly_time ** 2
 
                     # Add ballistics angle
                     direct_angle = get_direct_angle(weapon_position, predicted_position)
@@ -313,11 +359,26 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
                         if original_velocity_magnitude != 0:
                             velocity_towards_target[:] = np.dot(local_unit['velocity'],
                                                                 normalized_direction_vector) * normalized_direction_vector
+                            # acceleration_towards_target[:] = local_unit['acceleration'] * normalized_direction_vector
+                            acceleration_towards_target = np.dot(local_unit['acceleration'],
+                                                                 normalized_direction_vector) * normalized_direction_vector
+
                         else:
                             velocity_towards_target[:] = [0, 0, 0]
 
+                        # predicted_position -= (local_unit['velocity']) * fly_time
                         predicted_position -= (local_unit['velocity'] - velocity_towards_target) * fly_time
-                        predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time
+                        # predicted_position -= (local_unit['velocity']) * fly_time
+
+                        # predicted_position -= local_unit['acceleration']
+                        # predicted_position -= (local_unit['velocity'] - velocity_towards_target) * fly_time
+                        # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time ** 2
+                        # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time # good
+                        # predicted_position -= (local_unit['acceleration'] * 0.25) * fly_time
+                        # predicted_position -= (local_unit['acceleration'] * 0.5) * fly_time * 0.5 # good
+                        # predicted_position -= (acceleration_towards_target * 0.5) * fly_time # very good
+                        # predicted_position -= local_unit['acceleration'] + (acceleration_towards_target - local_unit['acceleration']) * fly_time # very smooth
+                        # predicted_position -= local_unit['acceleration'] + (acceleration_towards_target - local_unit['acceleration']) * 0.5 * fly_time
                     else:
                         predicted_position -= local_unit['velocity'] * fly_time
 
@@ -329,7 +390,6 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
                     final_predicted_position[1] += 1.35
                 final_predicted_position = rotate_points(final_predicted_position, enemy['rotation'],
                                                          predicted_position)
-
 
 
                 # Get target angle
@@ -382,6 +442,7 @@ def aim_func(scraper_shared, ballistics_shared, window_shared, shared_exit, User
 
 
                 aim_angle += weapon_offset
+
                 if aim_angle[0] < -pi:
                     aim_angle[0] += 2 * pi
                 elif aim_angle[0] > pi:
