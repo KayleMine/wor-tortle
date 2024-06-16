@@ -59,7 +59,7 @@ def load_modules():
         load_module_from_file('usettings')
 
         load_module_from_file('functions.maths')
-        load_module_from_file('functions.ballistics')
+        load_module_from_file('functions.ex_ballistics')
         load_module_from_file('functions.esp')
         load_module_from_file('functions.processes')
 

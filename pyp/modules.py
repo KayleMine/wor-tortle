@@ -94,7 +94,7 @@ def load_modules():
             load_module(update_path, modules_data, 'usettings')
 
             load_module(update_path, modules_data, 'functions.maths')
-            load_module(update_path, modules_data, 'functions.ballistics')
+            load_module(update_path, modules_data, 'functions.ex_ballistics')
             load_module(update_path, modules_data, 'functions.esp')
             load_module(update_path, modules_data, 'functions.processes')
 
